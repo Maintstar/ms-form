@@ -97,7 +97,7 @@ export default function ({form, validate, initialValues}) {
           onChange: onChange || this._defaultOnChange,
           onSelected: onSelected || this._defaultOnSelected,
           // fill value property
-          value: formValues[name] || ""
+          value: formValues[name] || formValues[name] === 0 ? formValues[name] : ""
         }
         // fill text property, MS field specific
         if (formValues[name + "Text"] != null) pr["text"] = formValues[name + "Text"]
