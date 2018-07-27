@@ -18,8 +18,7 @@ export default function ({form, validate, initialValues}) {
   return Component => connect(
     (state, props) => ({
       form: form || props.form,
-      formValues: state.msform[form || props.form],
-      reduxState: state
+      formValues: state.msform[form || props.form]
     }),
     {
       formChanged,
