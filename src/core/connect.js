@@ -23,19 +23,19 @@ export default function ({form, validate, initialValues}) {
     }
   )
   (function FormComponent(props) {
-    const { formChanged, formReset, form, reduxState } = props;
+    const { formChanged, formReset, form } = props;
     // we keep here asyncValidationResults
     const [asyncValidation, setAsyncValidation] = useState(() => ({}));
 
     const formValues = useMemo(() => {
       return props.formValues || {
         // initialProps from connectForm parameter
-        ...(typeof(initialValues) === 'function' ? initialValues(reduxState, props) : initialValues),
+        ...(typeof(initialValues) === 'function' ? initialValues(props) : initialValues),
         // initialValues from property sent higher
         // not documented, not recommended way
         ...initialValues
       }
-    }, [initialValues, reduxState, props])
+    }, [initialValues, props])
 
     const formValidation = useMemo(() => ({
       ...(validate && validate(formValues, props)),
