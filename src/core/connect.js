@@ -1,7 +1,6 @@
-import React from 'react'
-import {connect} from 'react-redux'
-import {formChanged, formReset} from './action'
-
+import React, { useState, useMemo, useCallback } from 'react'
+import { connect } from 'react-redux'
+import { formChanged, formReset } from './action'
 
 export function mergeValidation(prevValidation, newValidation) {
 
@@ -12,9 +11,7 @@ export function mergeValidation(prevValidation, newValidation) {
   return resValidation;
 }
 
-
 export default function ({form, validate, initialValues}) {
-
   return Component => connect(
     (state, props) => ({
       form: form || props.form,
@@ -25,41 +22,43 @@ export default function ({form, validate, initialValues}) {
       formReset
     }
   )
-  (class FormComponent extends React.Component {
+  (function FormComponent(props) {
+    const { formChanged, formReset, form, reduxState } = props;
+    // we keep here asyncValidationResults
+    const [asyncValidation, setAsyncValidation] = useState(() => ({}));
 
-    constructor(props) {
-      super(props)
-      this.state = {
-        // we keep here asyncValidationResults
-        asyncValidation: {}
+    const formValues = useMemo(() => {
+      return props.formValues || {
+        // initialProps from connectForm parameter
+        ...(typeof(initialValues) === 'function' ? initialValues(reduxState, props) : initialValues),
+        // initialValues from property sent higher
+        // not documented, not recommended way
+        ...initialValues
       }
-    }
+    }, [initialValues, reduxState, props])
+
+    const formValidation = useMemo(() => ({
+      ...(validate && validate(formValues, props)),
+      ...asyncValidation
+    }), [formValues, asyncValidation, props])
 
     // method to use when you want to save,
-    formChanged = (values) => {
-      this.props.formChanged(this.props.form, values)
-    }
+    const newFormChanged = useCallback((values) => {
+      formChanged(form, values)
+    }, [formChanged, form])
 
-    formReset = (otherForm) => {
-      this.props.formReset(otherForm || this.props.form)
-    }
+    const newFormReset = useCallback((otherForm) => {
+      formReset(otherForm || form)
+    }, [form, formReset])
 
-    asyncValidationResult = (asyncValidation) => {
+    const asyncValidationResult = useCallback((newAsyncValidation) => {
       // set async validation result
-      let res = mergeValidation(this.state.asyncValidation, asyncValidation)
-      this.setState({asyncValidation: res})
-    }
+      let res = mergeValidation(asyncValidation, newAsyncValidation)
+      setAsyncValidation(res)
+    }, [asyncValidation])
 
     /* get event and generate new form change change event */
-    formGet = (...args) => {
-      if (args.length === 4 && args[2] && args[2].props) {
-        return this.formGetOnSelected(...args)
-      }
-      return this.formGetOnChange(...args)
-    }
-
-    /* get event and generate new form change change event */
-    formGetOnChange = (ev) => {
+    const formGetOnChange = useCallback((ev) => {
       let val = {}
 
       if (typeof (ev) === "function") {
@@ -70,31 +69,44 @@ export default function ({form, validate, initialValues}) {
         val = {[ev.target.name]: v}
       }
 
-      // assign values
-      let o = this._getFormValues()
-      let r = {...o, ...val}
+      return { ...formValues, ...val }
+    }, [formValues])
 
-      return r
-    }
+    const formGetOnSelected = useCallback((value, text, field) => {
+      return formGetOnChange(() => ({
+          [field.props.name + "Text"]: text,
+          [field.props.name]: value}
+      ))
+    }, [formGetOnChange])
 
-    formGetOnSelected = (value, text, field) => {
-      return this.formGetOnChange(() => ({
-        [field.props.name + "Text"]: text,
-        [field.props.name]: value}
-        ))
-    }
+    /* get event and generate new form change change event */
+    const formGet = useCallback((...args) => {
+      if (args.length === 4 && args[2] && args[2].props) {
+        return formGetOnSelected(...args)
+      }
+      return formGetOnChange(...args)
+    }, [formGetOnSelected, formGetOnChange])
 
-    formField = (opts) => {
-      let formValidation = this.formValidation;
-      let formValues = this._getFormValues()
+    const _defaultOnChange = useCallback((ev) => {
+      let f = formGet(ev)
+      // get formChanged
+      newFormChanged(f)
+    }, [formGet, newFormChanged])
+
+    const _defaultOnSelected = useCallback((value, text, fld, lastValue) => {
+      let f = formGet(value, text, fld, lastValue)
+      // get formChanged
+      newFormChanged(f)
+    }, [formGet, newFormChanged])
+
+    const formField = useCallback((opts) => {
       let {showValidation, onChange, onSelected, skip} = opts
 
       return (name) => {
-
         let pr = {
           name,
-          onChange: onChange || this._defaultOnChange,
-          onSelected: onSelected || this._defaultOnSelected,
+          onChange: onChange || _defaultOnChange,
+          onSelected: onSelected || _defaultOnSelected,
           // fill value property
           value: formValues[name] || formValues[name] === 0 ? formValues[name] : ""
         }
@@ -116,62 +128,31 @@ export default function ({form, validate, initialValues}) {
 
         return pr
       }
+    }, [_defaultOnChange, _defaultOnSelected, formValidation, formValues])
+
+    const formIsValid = Object.keys(formValidation).length === 0
+
+    const rest = {
+      // use it when you want to save form values to the state
+      formChanged: newFormChanged,
+      // when you want tot reset form
+      formReset: newFormReset,
+      // form values
+      formValues,
+      // form validation
+      formValidation,
+      // form isValid flag
+      formIsValid,
+      // after async validation call this function to send validation result to control.
+      formAsyncValidationResult: asyncValidationResult,
+      // function to get for
+      formGet: formGet,
+      formGetOnChange: formGetOnChange,
+      formGetOnSelected: formGetOnSelected,
+      formField: formField
     }
 
-    _defaultOnChange = (ev) => {
-      let f = this.formGet(ev)
-      // get formChanged
-      this.formChanged(f)
-    }
-
-    _defaultOnSelected = (value, text, fld, lastValue) => {
-      let f = this.formGet(value, text, fld, lastValue)
-      // get formChanged
-      this.formChanged(f)
-    }
-
-    _getFormValues = () => {
-      return this.props.formValues || {
-          // initialProps from connectForm parameter
-          ...(typeof(initialValues) === 'function' ? initialValues(this.props.reduxState, this.props) : initialValues),
-          // initialValues from property sent higher
-          // not documented, not recommended way
-          ...this.props.initialValues
-        }
-    }
-
-    render() {
-      let {} = this.state
-      let {formChanged, formReset, ...props} = this.props
-
-      let formValues = this._getFormValues()
-
-      let formValidation = this.formValidation = {...(validate && validate(formValues, props)), ...this.state.asyncValidation}
-      let formIsValid = this.formIsValid = Object.keys(formValidation).length === 0
-
-
-      let rest = {
-        // use it when you want to save form values to the state
-        formChanged: this.formChanged,
-        // when you want tot reset form
-        formReset: this.formReset,
-        // form values
-        formValues,
-        // form validation
-        formValidation,
-        // form isValid flag
-        formIsValid,
-        // after async validation call this function to send validation result to control.
-        formAsyncValidationResult: this.asyncValidationResult,
-        // function to get for
-        formGet: this.formGet,
-        formGetOnChange: this.formGetOnChange,
-        formGetOnSelected: this.formGetOnSelected,
-        formField: this.formField
-      }
-
-      // inject formValues, and formChanged handler
-      return <Component {...props} {...rest} />
-    }
+    // inject formValues, and formChanged handler
+    return <Component {...props} {...rest} />
   })
 }

@@ -2,12 +2,12 @@
   "name": "ms-form",
   "version": "1.3.1",
   "dependencies": {
-    "prop-types": "^15.6.0",
-    "react": "^16.0.0",
-    "react-dom": "^16.0.0",
-    "react-redux": "^5.0.6",
-    "redux": "^3.7.2",
-    "redux-logger": "^3.0.6"
+    "prop-types": "^15.7.2",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0",
+    "react-redux": "^7.2.4",
+    "redux": "^4.1.0",
+    "redux-logger": "^4.0.0"
   },
   "homepage": ".",
   "scripts": {
@@ -19,7 +19,7 @@
   "description": "checkout [demo](https://maintstar.github.io/ms-form/build/)",
   "main": "src/core/index.js",
   "devDependencies": {
-    "react-scripts": "^1.0.13"
+    "react-scripts": "^4.0.3"
   },
   "repository": {
     "type": "git",

@@ -4,8 +4,6 @@ import InitialValues from './forms/initialValues'
 import SyncValidation from './forms/syncValidation'
 import AsyncValidation from './forms/asyncValidation'
 
-
-
 export default function(props) {
   return (
     <div style={{width:300, margin: 'auto'}}>
