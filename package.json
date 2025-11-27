@@ -19,7 +19,7 @@
   "description": "checkout [demo](https://maintstar.github.io/ms-form/build/)",
   "main": "src/core/index.js",
   "devDependencies": {
-    "react-scripts": "^4.0.3"
+    "react-scripts": "^5.0.1"
   },
   "repository": {
     "type": "git",
